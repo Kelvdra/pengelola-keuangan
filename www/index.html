@@ -41,10 +41,13 @@ nav button span{display:block;font-size:20px}
 .btn{background:var(--ac);color:#111;border:0;border-radius:10px;padding:11px 14px;font-weight:600;width:100%;margin-top:8px}
 .btn.alt{background:var(--card);color:var(--tx);border:1px solid var(--ln)}
 .f{display:grid;gap:8px;margin-bottom:8px}
-.donut{width:150px;height:150px;border-radius:50%;margin:8px auto;display:grid;place-items:center}
-.donut i{width:90px;height:90px;border-radius:50%;background:var(--bg);display:grid;place-items:center;font:600 13px system-ui;font-style:normal}
+.donut{position:relative;width:160px;height:160px;margin:8px auto}
+.donut i{position:absolute;inset:0;display:grid;place-items:center;font:600 14px system-ui;font-style:normal}
 .bar{height:7px;border-radius:4px;margin-top:6px}
 .empty{text-align:center;color:var(--mut);padding:40px 0}
+@keyframes up{from{opacity:0;transform:translateY(10px)}}@keyframes grow{from{width:0}}@keyframes seg{from{stroke-dasharray:0 var(--c)}}@keyframes pop{from{opacity:0;transform:scale(.85)}}
+.seg{animation:seg .9s cubic-bezier(.3,.7,.2,1) both}.donut svg{animation:pop .5s ease-out both}
+@media (prefers-reduced-motion:reduce){.seg,.bar,.row,.donut svg{animation:none!important}}
 </style></head><body><div id="app">
 <header><h1>Pengelola Keuangan</h1><select id="mon" style="width:auto"></select></header>
 <div class="sum"><div>Pengeluaran<b id="sO"></b></div><div>Pemasukan<b id="sI"></b></div><div>Saldo<b id="sS"></b></div></div>
@@ -95,9 +98,9 @@ function render(){const l=cur(),[o,i]=sums(l);$("#sO").textContent=rp(o);$("#sI"
   m.innerHTML=h;m.querySelectorAll(".row").forEach(r=>r.onclick=()=>openM(+r.dataset.id))}
  else if(tab==="w")wal();else if(tab==="g"){const by={};l.filter(t=>t.type===gt).forEach(t=>by[t.cat]=(by[t.cat]||0)+t.amount);
   const e=Object.entries(by).sort((a,b)=>b[1]-a[1]),tot=e.reduce((s,x)=>s+x[1],0);
-  let a=0,gr=e.map(([k,v])=>{const c=info(gt,k)[2],s=a;a+=v/tot*100;return`${c} ${s}% ${a}%`}).join(",");
-  m.innerHTML=`<div class="seg" id="gs"><button data-y="out" class="${gt==="out"?"on":""}">Pengeluaran</button><button data-y="in" class="${gt==="in"?"on":""}">Pemasukan</button></div>`+(tot?`<div class="donut" style="background:conic-gradient(${gr})"><i>${rp(tot)}</i></div>`+e.map(([k,v])=>{const c=info(gt,k);return`<div class="row"><div class="ic" style="background:${c[2]}">${c[1]}</div><div class="n" style="overflow:visible"><div style="display:flex;justify-content:space-between"><span>${k}</span><span>${rp(v)}</span></div><div class="bar" style="width:${Math.max(3,v/tot*100)}%;background:${c[2]}"></div><small>${(v/tot*100).toFixed(2).replace(".",",")}%</small></div></div>`}).join(""):'<div class="empty">Tidak ada data.</div>');
-  m.querySelectorAll("#gs button").forEach(b=>b.onclick=()=>{gt=b.dataset.y;render()})}
+  let a=0,C=2*Math.PI*45,gr=e.map(([k,v],i)=>{const c=info(gt,k)[2],len=v/tot*C,s=a;a+=len;return`<circle class="seg" cx="60" cy="60" r="45" fill="none" stroke="${c}" stroke-width="16" style="--c:${C};stroke-dasharray:${Math.max(len-1.5,.5)} ${C};stroke-dashoffset:${-s};animation-delay:${i*.12}s"/>`}).join("");
+  m.innerHTML=`<div class="seg" id="gs"><button data-y="out" class="${gt==="out"?"on":""}">Pengeluaran</button><button data-y="in" class="${gt==="in"?"on":""}">Pemasukan</button></div>`+(tot?`<div class="donut"><svg viewBox="0 0 120 120" width="160" height="160" style="transform:rotate(-90deg)">${gr}</svg><i class="cnt" data-v="${tot}">0</i></div>`+e.map(([k,v],i)=>{const c=info(gt,k);return`<div class="row" style="animation:up .45s ease-out both;animation-delay:${.2+i*.07}s"><div class="ic" style="background:${c[2]}">${c[1]}</div><div class="n" style="overflow:visible"><div style="display:flex;justify-content:space-between"><span>${k}</span><span>${rp(v)}</span></div><div class="bar" style="width:${Math.max(3,v/tot*100)}%;background:${c[2]};animation:grow .8s cubic-bezier(.2,.8,.2,1) both;animation-delay:${.3+i*.07}s"></div><small>${(v/tot*100).toFixed(2).replace(".",",")}%</small></div></div>`}).join(""):'<div class="empty">Tidak ada data.</div>');
+  m.querySelectorAll("#gs button").forEach(b=>b.onclick=()=>{gt=b.dataset.y;render()});const ct=m.querySelector(".cnt");if(ct){const T=+ct.dataset.v,t0=performance.now();(function f(n){const p=Math.min(1,(n-t0)/900);ct.textContent=rp(T*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f)})(t0)}}
  else m.innerHTML=`<p style="color:var(--mut)">Data disimpan di perangkat ini (offline). Ekspor untuk cadangan, impor untuk memulihkan.</p>
   <button class="btn" id="ex">Ekspor Excel (.xlsx)</button><button class="btn alt" id="ep">Ekspor PDF</button><button class="btn alt" id="ec">Ekspor CSV</button>
   <label class="btn alt" style="display:block;text-align:center">Impor Excel/CSV<input type="file" id="im" accept=".xlsx,.xls,.csv" hidden></label>

@@ -22,6 +22,7 @@ jobs:
       - name: Create Android project
         run: |
           npx cap add android
+          npx capacitor-assets generate --android --assetPath assets
           npx cap sync android
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug

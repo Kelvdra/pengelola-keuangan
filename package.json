@@ -1,3 +1,20 @@
-{"name":"pengelola-keuangan","version":"1.0.0","private":true,
-"scripts":{"libs":"mkdir -p www/lib && cp node_modules/xlsx/dist/xlsx.full.min.js www/lib/ && cp node_modules/jspdf/dist/jspdf.umd.min.js www/lib/"},
-"dependencies":{"@capacitor/android":"^6.1.0","@capacitor/cli":"^6.1.0","@capacitor/core":"^6.1.0","@capacitor/filesystem":"^6.0.0","@capacitor/share":"^6.0.0","jspdf":"2.5.1","xlsx":"0.18.5"}}
+{
+ "name": "pengelola-keuangan",
+ "version": "1.0.0",
+ "private": true,
+ "scripts": {
+  "libs": "mkdir -p www/lib && cp node_modules/xlsx/dist/xlsx.full.min.js www/lib/ && cp node_modules/jspdf/dist/jspdf.umd.min.js www/lib/"
+ },
+ "dependencies": {
+  "@capacitor/android": "^6.1.0",
+  "@capacitor/cli": "^6.1.0",
+  "@capacitor/core": "^6.1.0",
+  "@capacitor/filesystem": "^6.0.0",
+  "@capacitor/share": "^6.0.0",
+  "jspdf": "2.5.1",
+  "xlsx": "0.18.5"
+ },
+ "devDependencies": {
+  "@capacitor/assets": "^3.0.5"
+ }
+}
