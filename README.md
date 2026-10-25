@@ -32,3 +32,8 @@ Format tag harus `vMAJOR.MINOR.PATCH`.
 APK ditandatangani dengan kunci tetap di `keystore/pengelola.keystore` (bukan kunci acak tiap build), sehingga versi baru dengan
 `versionCode` lebih besar bisa langsung menimpa versi lama. **Jangan hapus/ganti file keystore** — kalau berganti, HP akan menolak update.
 Catatan: jika repository ini publik, siapa pun bisa memakai kunci tersebut; jadikan repository private bila perlu.
+
+## Laporan Excel
+Ekspor Excel dibuat oleh `www/js/report.js` + `www/js/xlsxwriter.js` (tanpa library tambahan). Isinya 4 sheet:
+**Ringkasan** (kartu total, rekap bulanan, per kategori, posisi dompet — semua rumus), **Transaksi**, **Dompet**, **Kategori**.
+Tiga sheet terakhir tetap bisa diimpor kembali ke aplikasi.

@@ -298,12 +298,9 @@
   function wire() {
     $("#ex").onclick = function () {
       try {
-        var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows()), "Transaksi");
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Dompet", "Saldo awal"]].concat(acc.map(function (a) { return [a.name, a.start]; }))), "Dompet");
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Jenis", "Kategori", "Ikon", "Warna"]].concat(OUT.map(function (c) { return ["Pengeluaran"].concat(c); }), IN.map(function (c) { return ["Pemasukan"].concat(c); }))), "Kategori");
-        save("keuangan.xlsx", XLSX.write(wb, { type: "array", bookType: "xlsx" }));
-      } catch (e) { toast("Pustaka Excel belum termuat."); }
+        var bytes = FinanceReport.build({ tx: tx, acc: acc, OUT: OUT, IN: IN, an: an });
+        save("Laporan-Keuangan-" + today() + ".xlsx", new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      } catch (e) { toast("Gagal membuat laporan: " + (e.message || e)); }
     };
     $("#ec").onclick = function () { save("keuangan.csv", "﻿" + rows().map(function (r) { return r.map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(","); }).join("\n")); };
     $("#ep").onclick = function () { try { exportPdf(); } catch (e) { toast("Pustaka PDF belum termuat."); } };
