@@ -41,3 +41,12 @@ Tiga sheet terakhir tetap bisa diimpor kembali ke aplikasi.
 ## Biaya admin transfer / top up
 Di form **Transfer** ada kolom *Biaya admin (opsional)*. Kosongkan jika gratis admin. Jika diisi, biaya dipotong dari dompet asal
 dan dicatat otomatis sebagai pengeluaran kategori **Biaya Admin** (terhubung ke transfernya, jadi ikut berubah/terhapus saat transfer diubah/dihapus).
+
+## Saldo di Riwayat
+Angka besar di atas Riwayat/Grafik adalah **saldo akhir** periode: saldo awal semua dompet + semua pemasukan − pengeluaran sampai akhir bulan yang dipilih
+(atau sampai sekarang jika memilih "Semua"). Kotak Pemasukan dan Pengeluaran tetap menampilkan angka bulan yang dipilih saja.
+
+## Mata uang
+Tab **Data > Pengaturan > Mata uang** memilih mata uang untuk seluruh aplikasi (±155 mata uang aktif ISO 4217, bisa dicari dengan nama atau kode).
+Simbol dan jumlah desimal (mis. IDR/JPY 0, USD/EUR 2, KWD 3) diambil dari `Intl` bawaan HP, jadi tetap offline. Format angka tetap titik ribuan dan koma desimal.
+Mengganti mata uang **tidak mengonversi** nominal yang sudah tercatat. Pilihan tersimpan di perangkat dan ikut dipakai di Excel dan PDF.

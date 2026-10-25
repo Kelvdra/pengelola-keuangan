@@ -245,3 +245,6 @@ nav button.on .i { stroke-width: 2.1; }
 .donut circle { animation: arc .9s cubic-bezier(.3, .7, .2, 1) both; }
 .card.in { animation: up .35s ease-out both; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.curlist { max-height: 46vh; overflow-y: auto; border-radius: var(--r); }
+.curlist .card { box-shadow: none; }

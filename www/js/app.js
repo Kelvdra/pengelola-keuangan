@@ -21,11 +21,39 @@
   var tx = [], acc = [], AT = null, tab = "h", ty = "out", cat = null, eid = null, gt = "out";
   var NEUTRAL = "#64748b", FEE_CAT = "Biaya Admin";
 
+  /* ================= Mata uang ================= */
+  var K4 = "pk_cur_v1";
+  var CODES = ("AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BGN BHD BIF BMD BND BOB BRL BSD BTN BWP BYN BZD CAD CDF CHF CLP CNY COP CRC CUP CVE CZK DJF DKK DOP DZD EGP ERN ETB EUR FJD FKP GBP GEL GHS GIP GMD GNF GTQ GYD HKD HNL HTG HUF IDR ILS INR IQD IRR ISK JMD JOD JPY KES KGS KHR KMF KPW KRW KWD KYD KZT LAK LBP LKR LRD LSL LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG SEK SGD SHP SLE SOS SRD SSP STN SYP SZL THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD UYU UZS VES VND VUV WST XAF XCD XOF XPF YER ZAR ZMW ZWG ZWL").split(" ");
+  var POP = ["IDR", "USD", "EUR", "SGD", "MYR", "JPY", "GBP", "AUD", "SAR", "CNY", "KRW", "THB", "INR", "HKD"];
+  var curCache = {};
+  /* Simbol & jumlah desimal tiap mata uang diambil dari Intl bawaan perangkat (offline). */
+  function curInfo(code) {
+    if (curCache[code]) return curCache[code];
+    var d = 2, sym = code;
+    try { d = new Intl.NumberFormat("en", { style: "currency", currency: code }).resolvedOptions().maximumFractionDigits; } catch (e) { }
+    try {
+      var p = new Intl.NumberFormat("id-ID", { style: "currency", currency: code, currencyDisplay: "narrowSymbol" }).formatToParts(0).filter(function (x) { return x.type === "currency"; })[0];
+      if (p && p.value) sym = p.value;
+    } catch (e) { }
+    if (code === "IDR") sym = "Rp";
+    if ((sym === "$" && code !== "USD") || (sym === "¥" && code !== "JPY") || sym === "kr" || sym.length > 3) sym = code;
+    return (curCache[code] = { code: code, sym: sym, d: d });
+  }
+  var CUR = { code: "IDR", sym: "Rp", d: 0 };
+  var cs = function () { return CUR.sym + (/[A-Za-z]$/.test(CUR.sym) ? " " : ""); };
+  var roundC = function (n) { var f = Math.pow(10, CUR.d); return Math.round(n * f) / f; };
+  function applyCur() {
+    document.querySelectorAll(".cur").forEach(function (e) { e.textContent = CUR.sym; });
+    var ph = CUR.d ? "0," + new Array(CUR.d + 1).join("0") : "0", im = CUR.d ? "decimal" : "numeric";
+    ["#amt", "#fee"].forEach(function (id) { var e = $(id); if (e) { e.setAttribute("inputmode", im); } });
+    $("#amt").placeholder = ph;
+  }
+
   /* ================= Util ================= */
   var $ = function (s) { return document.querySelector(s); };
   var svg = function (n, s, w) { return Icons.svg(n, s, w); };
   var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
-  var rp = function (n) { return Math.round(n).toLocaleString("id-ID"); };
+  var rp = function (n) { return n.toLocaleString("id-ID", { minimumFractionDigits: CUR.d, maximumFractionDigits: CUR.d }); };
   var safeColor = function (c, fb) { return /^#[0-9a-f]{6}$/i.test(String(c || "")) ? String(c).toLowerCase() : (fb || NEUTRAL); };
   var parseNum = function (v) { return parseFloat(String(v).replace(/\s/g, "").replace(/\./g, "").replace(",", ".")) || 0; };
   var today = function () { var d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
@@ -105,6 +133,7 @@
     if (!acc || !acc.length) acc = [{ id: "cash", name: "Cash", icon: "cash", start: 0 }, { id: "bank", name: "Rekening", icon: "bank", start: 0 }, { id: "ewallet", name: "Dompet Digital", icon: "phone", start: 0 }];
     tx.forEach(function (t) { if (!t.acc && t.type !== "tf") t.acc = acc[0].id; });
     try { var c = JSON.parse(localStorage.getItem(K3) || "null"); if (c && c.OUT && c.IN) { OUT = c.OUT; IN = c.IN; } } catch (e) { }
+    try { var cc = localStorage.getItem(K4); if (cc && CODES.indexOf(cc) >= 0) CUR = curInfo(cc); } catch (e) { }
     migrate();
   }
   /* Ubah emoji lama menjadi kunci ikon SVG dan warna lama menjadi palet baru */
@@ -146,6 +175,16 @@
     return tx.filter(function (t) { return m === "all" || t.date.startsWith(m); }).sort(function (a, b) { return b.date.localeCompare(a.date) || b.id - a.id; });
   }
   function sums(l) { var o = 0, i = 0; l.forEach(function (t) { if (t.type === "in") i += t.amount; else if (t.type === "out") o += t.amount; }); return [o, i]; }
+  /* Saldo akhir periode = saldo awal semua dompet + seluruh pemasukan − pengeluaran sampai akhir periode terpilih
+     (transfer antar dompet tidak mengubah total; biaya admin sudah tercatat sebagai pengeluaran). */
+  function endBal(m) {
+    var b = acc.reduce(function (s, a) { return s + (a.start || 0); }, 0);
+    tx.forEach(function (t) {
+      if (m !== "all" && t.date.slice(0, 7) > m) return;
+      if (t.type === "in") b += t.amount; else if (t.type === "out") b -= t.amount;
+    });
+    return b;
+  }
   var money = function (n) { return (n < 0 ? "−" : "") + rp(Math.abs(n)); };
 
   /* ================= Tampilan utama ================= */
@@ -155,9 +194,10 @@
 
   function render() {
     var l = cur(), s = sums(l), o = s[0], i = s[1], m = $("#main"), mv = $("#mon").value;
-    $("#hLbl").textContent = "Saldo periode · " + (mv === "all" ? "Semua waktu" : mlabel(mv));
-    $("#hBal").innerHTML = "<sup>" + (i - o < 0 ? "−Rp" : "Rp") + "</sup>" + rp(Math.abs(i - o));
-    $("#hIn").textContent = "Rp " + rp(i); $("#hOut").textContent = "Rp " + rp(o);
+    $("#hLbl").textContent = "Saldo akhir · " + (mv === "all" ? "Semua waktu" : mlabel(mv));
+    var sb = endBal(mv);
+    $("#hBal").innerHTML = "<sup>" + (sb < 0 ? "−" : "") + esc(CUR.sym) + "</sup>" + rp(Math.abs(sb));
+    $("#hIn").textContent = cs() + rp(i); $("#hOut").textContent = cs() + rp(o);
     $("#hero").style.display = (tab === "h" || tab === "g") ? "" : "none";
     $("#sub").textContent = { h: "Riwayat transaksi", w: "Dompet saya", g: "Analisis kategori", d: "Data & cadangan" }[tab];
 
@@ -189,7 +229,7 @@
 
   function renderWallets(m) {
     var total = acc.reduce(function (s, a) { return s + bal(a.id); }, 0);
-    m.innerHTML = '<div class="sec"><h2>Total semua dompet</h2></div><div class="card"><div class="total"><div><div class="lbl">Saldo gabungan</div><div class="big num ' + (total < 0 ? "neg" : "") + '">Rp ' + money(total) + "</div></div></div></div>" +
+    m.innerHTML = '<div class="sec"><h2>Total semua dompet</h2></div><div class="card"><div class="total"><div><div class="lbl">Saldo gabungan</div><div class="big num ' + (total < 0 ? "neg" : "") + '">' + esc(cs()) + money(total) + "</div></div></div></div>" +
       '<div class="sec"><h2>Dompet</h2><span>' + acc.length + " akun</span></div><div class='card'>" +
       acc.map(function (a) {
         var b = bal(a.id);
@@ -205,7 +245,7 @@
   function editWallet(a) {
     form({
       title: a ? "Ubah dompet" : "Dompet baru", nameLabel: "Nama dompet", name: a ? a.name : "", ph: "mis. Tabungan",
-      num: { label: "Saldo awal (Rp)", value: a ? a.start : 0 }, icons: { list: Icons.WALLET, value: a ? a.icon : "wallet" }, ok: a ? "Simpan" : "Tambah", del: a ? "Hapus dompet" : null
+      num: { label: "Saldo awal (" + CUR.sym + ")", value: a ? a.start : 0 }, icons: { list: Icons.WALLET, value: a ? a.icon : "wallet" }, ok: a ? "Simpan" : "Tambah", del: a ? "Hapus dompet" : null
     }).then(function (r) {
       if (!r) return;
       if (r.del) {
@@ -242,7 +282,9 @@
 
   function renderData(m) {
     var A = function (id, ic, t, s, cls) { return '<button class="row act ' + (cls || "") + '" id="' + id + '"><div class="ic">' + svg(ic, 22) + '</div><div class="n"><div class="t">' + t + "</div><small>" + s + '</small></div><span class="go">' + svg("chevronR", 18) + "</span></button>"; };
-    m.innerHTML = '<div class="sec"><h2>Ekspor</h2></div><div class="card">' +
+    var cn = curName(CUR.code);
+    m.innerHTML = '<div class="sec"><h2>Pengaturan</h2></div><div class="card">' + A("cur", "cash", "Mata uang", esc(cn) + " · " + CUR.code + " (" + esc(CUR.sym) + ")") + "</div>" +
+      '<div class="sec"><h2>Ekspor</h2></div><div class="card">' +
       A("ex", "sheet", "Excel (.xlsx)", "Transaksi, dompet, dan kategori") + A("ep", "doc", "PDF", "Laporan ringkas siap cetak") + A("ec", "file", "CSV", "Format teks untuk aplikasi lain") + "</div>" +
       '<div class="sec"><h2>Impor</h2></div><div class="card"><label class="row act" style="cursor:pointer"><div class="ic">' + svg("upload", 22) + '</div><div class="n"><div class="t">Impor Excel / CSV</div><small>Pulihkan dari berkas cadangan</small></div><span class="go">' + svg("chevronR", 18) + '</span><input type="file" id="im" accept=".xlsx,.xls,.csv" hidden></label></div>' +
       '<div class="sec"><h2>Zona berbahaya</h2></div><div class="card">' + A("rs", "trash", "Hapus semua transaksi", "Ekspor dulu untuk cadangan", "dg") + "</div>" +
@@ -280,7 +322,8 @@
     D.setFillColor(79, 70, 229); D.rect(0, 0, W, 34, "F");
     D.setTextColor(255, 255, 255); D.setFont(undefined, "bold"); D.setFontSize(17); D.text("Laporan Keuangan", 14, 15);
     D.setFont(undefined, "normal"); D.setFontSize(9); D.text("Dibuat " + new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }), 14, 22);
-    D.setFontSize(9.5); D.text("Pemasukan Rp " + rp(s[1]) + "    Pengeluaran Rp " + rp(s[0]) + "    Saldo Rp " + money(s[1] - s[0]), 14, 29);
+    D.setFontSize(9.5); var ps = /^[\x20-\x7e\xa0-\xff\u20ac]+$/.test(CUR.sym) ? CUR.sym : CUR.code, pc = ps + (/[A-Za-z]$/.test(ps) ? " " : "");
+    D.text("Pemasukan " + pc + rp(s[1]) + "    Pengeluaran " + pc + rp(s[0]) + "    Saldo " + pc + money(s[1] - s[0]), 14, 29);
     y = 46; header();
     r.slice(1).forEach(function (x, k) {
       if (y > 280) { D.addPage(); y = 16; header(); }
@@ -295,10 +338,43 @@
     save("keuangan.pdf", D.output("arraybuffer"));
   }
 
+  var dn = null;
+  function curName(c) { try { dn = dn || new Intl.DisplayNames(["id"], { type: "currency" }); return dn.of(c) || c; } catch (e) { return c; } }
+
+  /* Pilih mata uang (seluruh aplikasi). Nominal lama TIDAK dikonversi; hanya simbol & jumlah desimal yang berubah. */
+  function pickCur() {
+    var list = CODES.map(function (c) { return { c: c, n: curName(c) }; });
+    var rest = list.filter(function (x) { return POP.indexOf(x.c) < 0; }).sort(function (a, b) { return a.n.localeCompare(b.n, "id"); });
+    var all = POP.map(function (c) { return list.find(function (x) { return x.c === c; }); }).filter(Boolean).concat(rest);
+    present('<h3>Mata uang</h3><p class="m">Berlaku untuk seluruh aplikasi dan laporan.</p><div class="field"><input id="cq" type="search" placeholder="Cari nama atau kode, mis. Yen atau USD" autocomplete="off"></div><div class="curlist"><div class="card" id="cl"></div></div>',
+      function (b, done) {
+        var cl = b.querySelector("#cl"), q = b.querySelector("#cq");
+        function paint() {
+          var t = q.value.trim().toLowerCase();
+          var l = all.filter(function (x) { return !t || x.c.toLowerCase().indexOf(t) >= 0 || x.n.toLowerCase().indexOf(t) >= 0; });
+          cl.innerHTML = l.length ? l.map(function (x) {
+            return '<button class="row" data-c="' + x.c + '"><div class="n"><div class="t">' + esc(x.n) + "</div><small>" + x.c + " · " + esc(curInfo(x.c).sym) + "</small></div>" +
+              (x.c === CUR.code ? '<span class="go" style="color:var(--ac)">' + svg("check", 18, 2.4) + "</span>" : "") + "</button>";
+          }).join("") : '<p class="note">Tidak ada hasil.</p>';
+        }
+        paint(); q.oninput = paint;
+        cl.onclick = function (e) { var r = e.target.closest("[data-c]"); if (r) done(r.dataset.c); };
+      }).then(function (c) {
+      if (!c || c === CUR.code) return;
+      var n = curInfo(c);
+      confirmD("Ganti ke " + curName(c) + "?", "Nominal yang sudah tercatat tidak dikonversi, hanya simbol dan format yang berubah (100.000 tetap 100.000, tampil sebagai " + n.sym + (/[A-Za-z]$/.test(n.sym) ? " " : "") + "100.000" + (n.d ? "," + new Array(n.d + 1).join("0") : "") + "). Ubah nominal dulu bila perlu.", "Ganti", false).then(function (ok) {
+        if (!ok) return;
+        CUR = n; try { localStorage.setItem(K4, c); } catch (e) { }
+        applyCur(); render(); toast("Mata uang: " + c);
+      });
+    });
+  }
+
   function wire() {
+    $("#cur").onclick = pickCur;
     $("#ex").onclick = function () {
       try {
-        var bytes = FinanceReport.build({ tx: tx, acc: acc, OUT: OUT, IN: IN, an: an });
+        var bytes = FinanceReport.build({ tx: tx, acc: acc, OUT: OUT, IN: IN, an: an, cur: CUR });
         save("Laporan-Keuangan-" + today() + ".xlsx", new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
       } catch (e) { toast("Gagal membuat laporan: " + (e.message || e)); }
     };
@@ -365,7 +441,7 @@
     $("#del").style.visibility = t ? "visible" : "hidden"; dlab(); $("#mt").textContent = t ? "Ubah transaksi" : "Transaksi baru"; cats(); AT = null; $("#mod").classList.add("show");
   }
   function doSave() {
-    var a = amtVal(), tf = ty === "tf";
+    var a = roundC(amtVal()), tf = ty === "tf";
     if (!tf && !cat) return toast("Pilih kategori terlebih dahulu.");
     if (!a || a <= 0) return toast("Masukkan jumlah yang valid.");
     if (tf && $("#a1").value === $("#a2").value) return toast("Dompet asal dan tujuan harus berbeda.");
@@ -379,7 +455,7 @@
 
   /* Biaya admin transfer/top up: opsional. Disimpan sebagai pengeluaran kategori "Biaya Admin"
      yang terhubung (tfid) ke transfernya, dipotong dari dompet asal, sehingga saldo, grafik & laporan ikut akurat. */
-  var feeVal = function () { return parseInt($("#fee").value.replace(/\D/g, ""), 10) || 0; };
+  var feeVal = function () { return roundC(parseFloat($("#fee").value.replace(/\./g, "").replace(",", ".")) || 0); };
   function syncFee(pid, fee, o) {
     var f = tx.find(function (x) { return x.tfid === pid; });
     if (!fee) { if (f) tx = tx.filter(function (x) { return x !== f; }); return; }
@@ -391,11 +467,12 @@
   /* Jumlah: keyboard angka bawaan HP, diformat otomatis dengan titik ribuan */
   function fmtAmt(raw) {
     raw = String(raw).replace(/[^\d,]/g, ""); var p = raw.split(","), i = p[0].replace(/^0+(?=\d)/, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    return p.length > 1 ? (i || "0") + "," + p.slice(1).join("") : i;
+    if (!CUR.d) return i;
+    return p.length > 1 ? (i || "0") + "," + p.slice(1).join("").slice(0, CUR.d) : i;
   }
   var amtVal = function () { return parseFloat($("#amt").value.replace(/\./g, "").replace(",", ".")) || 0; };
-  function onAmt() {
-    var el = $("#amt"), pos = el.selectionStart, before = el.value.slice(0, pos).replace(/[^\d,]/g, "").length;
+  function onAmt(el) {
+    var pos = el.selectionStart, before = el.value.slice(0, pos).replace(/[^\d,]/g, "").length;
     el.value = fmtAmt(el.value);
     var n = 0, np = el.value.length; for (var k = 0; k < el.value.length; k++) { if (n === before) { np = k; break; } if (/[\d,]/.test(el.value[k])) n++; }
     try { el.setSelectionRange(np, np); } catch (e) { }
@@ -460,15 +537,15 @@
     document.querySelectorAll("nav button[data-t]").forEach(function (b) { b.insertAdjacentHTML("afterbegin", svg(NAV[b.dataset.t], 22)); });
     document.querySelectorAll(".sel .i-slot").forEach(function (s) { s.outerHTML = svg("chevron", 16); });
     $("#save").innerHTML = svg("check", 20, 2.4) + " Simpan"; $("#save").onclick = doSave;
-    $("#amt").oninput = onAmt;
-    $("#fee").oninput = function () { this.value = fmtAmt(this.value.replace(/\D/g, "")); };
+    $("#amt").oninput = function () { onAmt(this); };
+    $("#fee").oninput = function () { onAmt(this); };
     $("#fee").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); $("#note").focus(); } };
     $("#amt").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); $("#note").focus(); } };
     $("#note").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); } };
     $("#dtb").onclick = function () { try { $("#dt").showPicker(); } catch (e) { $("#dt").click(); } };
     $("#dt").onchange = dlab;
     $("#chip").onclick = function () { if (cat) $("#note").value = cat; };
-    load(); fillMon(); render();
+    load(); applyCur(); fillMon(); render();
   }
 
   init();

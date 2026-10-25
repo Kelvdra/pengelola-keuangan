@@ -4,7 +4,7 @@
   "use strict";
 
   var INDIGO = "FF4F46E5", INK = "FF0F172A", MUT = "FF64748B", LINE = "FFE2E8F0", SOFT = "FFEEF0FF", GREEN = "FF059669", RED = "FFE11D48", ZEBRA = "FFF8FAFC", WHITE = "FFFFFFFF";
-  var RP = '"Rp" #,##0;[Red]-"Rp" #,##0;"-"', NUM = "#,##0", PCT = "0.0%", DATE = "dd/mm/yyyy", MON = "mmm yyyy";
+  var RP = '"Rp" #,##0;[Red]-"Rp" #,##0;"-"', NUM = "#,##0", AMT = "#,##0", PCT = "0.0%", DATE = "dd/mm/yyyy", MON = "mmm yyyy";
   var MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
   var serial = function (iso) { var p = String(iso).slice(0, 10).split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 864e5 + 25569; };
@@ -16,6 +16,8 @@
   function build(D) {
     var W = XlsxWriter.Workbook, wb = new W(), ref = XlsxWriter.ref;
     var an = D.an, acc = D.acc;
+    var cu = D.cur || { code: "IDR", sym: "Rp", d: 0 }, dec = cu.d ? "." + new Array(cu.d + 1).join("0") : "", q = '"' + String(cu.sym).replace(/"/g, '""') + '"';
+    RP = q + " #,##0" + dec + ";[Red]-" + q + " #,##0" + dec + ';"-"'; AMT = "#,##0" + dec;
     var txs = D.tx.slice().sort(function (a, b) { return a.date.localeCompare(b.date) || a.id - b.id; });
     var N = txs.length, last = N + 1;
 
@@ -45,11 +47,12 @@
       kD: wb.style({ b: 1, h: "right", fmt: DATE, border: { bottom: thin } }),
       kT: wb.style({ b: 1, h: "right", border: { bottom: thin } }),
       note: wb.style({ i: 1, sz: 9, color: MUT, h: "left", indent: 1, wrap: 1, v: "top" }),
+      rc: function (z) { return wb.style({ fmt: NUM, h: "right", fill: z ? ZEBRA : undefined }); },
       // Transaksi
       hd: wb.style({ b: 1, color: WHITE, fill: INDIGO, h: "center", wrap: 1 }),
       d: function (z) { return wb.style({ fmt: DATE, h: "center", fill: z ? ZEBRA : undefined }); },
       t: function (z, c, b) { return wb.style({ h: "left", indent: 1, color: c, b: b, fill: z ? ZEBRA : undefined }); },
-      r: function (z, c) { return wb.style({ fmt: NUM, h: "right", color: c, fill: z ? ZEBRA : undefined }); }
+      r: function (z, c) { return wb.style({ fmt: AMT, h: "right", color: c, fill: z ? ZEBRA : undefined }); }
     };
 
     /* ---------- Data turunan ---------- */
@@ -76,7 +79,7 @@
     var first = txs[0], lastT = txs[N - 1];
     R.height(2, 40).height(3, 20);
     R.cell(2, 2, { v: "LAPORAN KEUANGAN", s: S.title }).merge(2, 2, 2, 7, S.title);
-    R.cell(3, 2, { v: (N ? "Periode " + lbl(new Date(first.date + "T00:00")) + " – " + lbl(new Date(lastT.date + "T00:00")) : "Belum ada transaksi") + "  ·  Dicetak " + lbl(new Date()), s: S.sub }).merge(3, 2, 3, 7, S.sub);
+    R.cell(3, 2, { v: (N ? "Periode " + lbl(new Date(first.date + "T00:00")) + " – " + lbl(new Date(lastT.date + "T00:00")) : "Belum ada transaksi") + "  ·  Dicetak " + lbl(new Date()) + "  ·  Mata uang " + cu.code, s: S.sub }).merge(3, 2, 3, 7, S.sub);
 
     // Kartu ringkas
     R.height(5, 20).height(6, 36);
@@ -216,7 +219,7 @@
         var z = (kr % 2) === 1, cnt = txs.filter(function (t) { return t.type === g[2] && t.cat === c[0]; });
         K.cell(kr, 1, { v: g[0], s: S.t(z) }); K.cell(kr, 2, { v: c[0], s: S.t(z, INK, 1) }); K.cell(kr, 3, { v: c[1], s: S.t(z, MUT) });
         K.cell(kr, 4, { v: c[2], s: wb.style({ b: 1, color: WHITE, h: "center", fill: "FF" + String(c[2]).replace("#", "").toUpperCase() }) });
-        K.cell(kr, 5, { f: "COUNTIFS(" + B + ",$A" + kr + "," + C + ",$B" + kr + ")", v: cnt.length, s: S.r(z) });
+        K.cell(kr, 5, { f: "COUNTIFS(" + B + ",$A" + kr + "," + C + ",$B" + kr + ")", v: cnt.length, s: S.rc(z) });
         K.cell(kr, 6, { f: "SUMIFS(" + E + "," + B + ",$A" + kr + "," + C + ",$B" + kr + ")", v: cnt.reduce(function (s, t) { return s + t.amount; }, 0), s: rpz(z) });
         kr++;
       });
