@@ -35,6 +35,22 @@ jobs:
           sed -i "s/versionCode [0-9]*/versionCode $CODE/; s/versionName \".*\"/versionName \"$V\"/" android/app/build.gradle
           grep -E "versionCode|versionName" android/app/build.gradle
           echo "APP_VERSION=$V" >> "$GITHUB_ENV"
+      - name: Pakai tanda tangan tetap (agar bisa update tanpa uninstall)
+        run: |
+          cat >> android/app/build.gradle <<'GRADLE'
+
+          android {
+              signingConfigs {
+                  debug {
+                      storeFile file("${rootProject.projectDir}/../keystore/pengelola.keystore")
+                      storePassword "pengelola123"
+                      keyAlias "pengelola"
+                      keyPassword "pengelola123"
+                  }
+              }
+          }
+          GRADLE
+          sed -i 's/<activity /<activity android:windowSoftInputMode="adjustResize" /' android/app/src/main/AndroidManifest.xml
       - name: Build debug APK
         run: |
           cd android && chmod +x gradlew && ./gradlew assembleDebug

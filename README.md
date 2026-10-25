@@ -27,3 +27,8 @@ Workflow berjalan otomatis, memakai `1.0.1` sebagai versionName dan menghitung v
 lalu membuat halaman **Releases** di GitHub berisi file `Pengelola-Keuangan-v1.0.1.apk`.
 Setiap versi berikutnya harus lebih besar agar APK baru bisa menimpa yang lama tanpa uninstall.
 Format tag harus `vMAJOR.MINOR.PATCH`.
+
+## Update tanpa uninstall
+APK ditandatangani dengan kunci tetap di `keystore/pengelola.keystore` (bukan kunci acak tiap build), sehingga versi baru dengan
+`versionCode` lebih besar bisa langsung menimpa versi lama. **Jangan hapus/ganti file keystore** — kalau berganti, HP akan menolak update.
+Catatan: jika repository ini publik, siapa pun bisa memakai kunci tersebut; jadikan repository private bila perlu.

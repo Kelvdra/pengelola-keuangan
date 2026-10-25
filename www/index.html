@@ -47,11 +47,11 @@
     <div class="mc"><div class="grid" id="cats"></div><p class="hint" id="tfh" style="display:none">Pilih dompet asal dan tujuan di bawah, lalu isi jumlah yang dipindahkan.</p></div>
     <div class="pad">
       <div class="wr"><div class="sel"><select id="a1" aria-label="Dompet"></select><span class="i-slot"></span></div><div class="sel"><select id="a2" aria-label="Dompet tujuan"></select><span class="i-slot"></span></div></div>
-      <div class="amt"><em>Rp</em><b id="amtd">0</b></div><input id="amt" type="hidden">
-      <div class="nt"><span>Catatan</span><input id="note" placeholder="Tambahkan catatan..." maxlength="80"></div>
+      <div class="amt"><em>Rp</em><input id="amt" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="0" aria-label="Jumlah"></div>
+      <div class="nt"><span>Catatan</span><input id="note" type="text" inputmode="text" enterkeyhint="done" autocomplete="off" placeholder="Tambahkan catatan..." maxlength="80"></div>
       <div id="chip"></div>
       <input id="dt" type="date" tabindex="-1" aria-hidden="true" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px">
-      <div class="kp" id="kp"></div>
+      <div class="foot"><button class="dt" id="dtb" type="button" aria-label="Pilih tanggal"></button><button class="btn ok" id="save" type="button"></button></div>
     </div>
   </div>
 

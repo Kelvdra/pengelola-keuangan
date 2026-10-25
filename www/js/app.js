@@ -18,7 +18,7 @@
     ["Gaji", "briefcase", "#f59e0b"], ["Bonus", "sparkles", "#10b981"], ["Usaha", "store", "#14b8a6"], ["Hadiah", "gift", "#8b5cf6"], ["Lainnya", "grid", "#0ea5e9"]
   ];
   var K = "pk_tx_v1", K2 = "pk_acc_v1", K3 = "pk_cat_v1";
-  var tx = [], acc = [], AT = null, tab = "h", ty = "out", cat = null, eid = null, gt = "out", ex = "";
+  var tx = [], acc = [], AT = null, tab = "h", ty = "out", cat = null, eid = null, gt = "out";
   var NEUTRAL = "#64748b";
 
   /* ================= Util ================= */
@@ -353,19 +353,18 @@
     $("#cats").innerHTML = (ty === "in" ? IN : OUT).map(function (c) {
       return '<button data-c="' + esc(c[0]) + '" class="' + (cat === c[0] ? "sel" : "") + '">' + badge(c[1], c[2]) + "<span>" + esc(c[0]) + "</span></button>";
     }).join("") + '<button id="cset" class="plain"><div class="ic">' + svg("settings", 22) + "</div><span>Atur</span></button>";
-    $("#cats").querySelectorAll("button").forEach(function (b) { b.onclick = function () { if (b.id === "cset") return catMgr(); cat = b.dataset.c; cats(); }; });
+    $("#cats").querySelectorAll("button").forEach(function (b) { b.onclick = function () { if (b.id === "cset") return catMgr(); cat = b.dataset.c; cats(); $("#amt").focus(); }; });
     $("#seg").querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.y === ty); });
     chip();
   }
   function openM(id, f) {
     eid = id || null; var t = tx.find(function (x) { return x.id === id; });
     ty = t ? t.type : (f || "out"); cat = t ? t.cat : null; AT = t;
-    $("#amt").value = t ? t.amount : ""; $("#note").value = t ? t.note : ""; $("#dt").value = t ? t.date : today();
-    $("#del").style.visibility = t ? "visible" : "hidden"; ex = t ? String(t.amount).replace(".", ",") : "";
-    sync(); dlab(); $("#mt").textContent = t ? "Ubah transaksi" : "Transaksi baru"; cats(); AT = null; $("#mod").classList.add("show");
+    $("#amt").value = t ? fmtAmt(String(t.amount).replace(".", ",")) : ""; $("#note").value = t ? t.note : ""; $("#dt").value = t ? t.date : today();
+    $("#del").style.visibility = t ? "visible" : "hidden"; dlab(); $("#mt").textContent = t ? "Ubah transaksi" : "Transaksi baru"; cats(); AT = null; $("#mod").classList.add("show");
   }
   function doSave() {
-    var a = parseFloat($("#amt").value), tf = ty === "tf";
+    var a = amtVal(), tf = ty === "tf";
     if (!tf && !cat) return toast("Pilih kategori terlebih dahulu.");
     if (!a || a <= 0) return toast("Masukkan jumlah yang valid.");
     if (tf && $("#a1").value === $("#a2").value) return toast("Dompet asal dan tujuan harus berbeda.");
@@ -375,23 +374,21 @@
     persist(); $("#mod").classList.remove("show"); fillMon(); render(); toast(eid ? "Transaksi diperbarui" : "Transaksi disimpan");
   }
 
-  var calc = function (s) { return (s.replace(/,/g, ".").match(/[+-]?[\d.]+/g) || []).reduce(function (a, x) { return a + (parseFloat(x) || 0); }, 0); };
-  function sync() {
-    $("#amtd").textContent = ex ? ex.replace(/(\d+)(,\d*)?/g, function (m, i, d) { return (+i).toLocaleString("id-ID") + (d || ""); }).replace(/-/g, "−") : "0";
-    $("#amt").value = calc(ex) || "";
+  /* Jumlah: keyboard angka bawaan HP, diformat otomatis dengan titik ribuan */
+  function fmtAmt(raw) {
+    raw = String(raw).replace(/[^\d,]/g, ""); var p = raw.split(","), i = p[0].replace(/^0+(?=\d)/, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return p.length > 1 ? (i || "0") + "," + p.slice(1).join("") : i;
   }
-  function key(k) {
-    var last = ex.split(/[+-]/).pop();
-    if (k === "bk") ex = ex.slice(0, -1);
-    else if (k === "ok") { if (/[+-]$/.test(ex)) ex = ex.slice(0, -1); sync(); return doSave(); }
-    else if (k === "+" || k === "-") { if (!ex) return; ex = /[+-]$/.test(ex) ? ex.slice(0, -1) + k : ex + k; }
-    else if (k === ",") { if (last.indexOf(",") < 0) ex += last ? "," : "0,"; }
-    else { if (k === "000" && (!last || last === "0")) return; if (last === "0") ex = ex.slice(0, -1); ex += k; }
-    sync();
+  var amtVal = function () { return parseFloat($("#amt").value.replace(/\./g, "").replace(",", ".")) || 0; };
+  function onAmt() {
+    var el = $("#amt"), pos = el.selectionStart, before = el.value.slice(0, pos).replace(/[^\d,]/g, "").length;
+    el.value = fmtAmt(el.value);
+    var n = 0, np = el.value.length; for (var k = 0; k < el.value.length; k++) { if (n === before) { np = k; break; } if (/[\d,]/.test(el.value[k])) n++; }
+    try { el.setSelectionRange(np, np); } catch (e) { }
   }
   function dlab() {
     var v = $("#dt").value || today();
-    $("#dtb").innerHTML = "<span>" + svg("calendar", 17) + "<span>" + (v === today() ? "Hari ini" : new Date(v + "T00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short" })) + "</span></span>";
+    $("#dtb").innerHTML = svg("calendar", 18) + "<span>" + (v === today() ? "Hari ini" : new Date(v + "T00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short" })) + "</span>";
   }
   function chip() { $("#chip").innerHTML = cat ? '<button type="button">' + esc(cat) + "</button>" : ""; }
 
@@ -448,14 +445,10 @@
     var NAV = { h: "list", w: "wallet", g: "pie", d: "settings" };
     document.querySelectorAll("nav button[data-t]").forEach(function (b) { b.insertAdjacentHTML("afterbegin", svg(NAV[b.dataset.t], 22)); });
     document.querySelectorAll(".sel .i-slot").forEach(function (s) { s.outerHTML = svg("chevron", 16); });
-    $("#kp").innerHTML = ["7", "8", "9", "dt", "4", "5", "6", "+", "1", "2", "3", "sub", "0", "000", "bk", "ok"].map(function (k) {
-      return k === "dt" ? '<button class="dt" id="dtb" type="button" aria-label="Pilih tanggal"></button>'
-        : k === "sub" ? '<div><button data-k="," type="button">,</button><button data-k="-" type="button" aria-label="Kurang">−</button></div>'
-          : k === "ok" ? '<button class="ok" data-k="ok" type="button" aria-label="Simpan">' + svg("check", 26, 2.4) + "</button>"
-            : k === "bk" ? '<button data-k="bk" type="button" aria-label="Hapus angka">' + svg("backspace", 24) + "</button>"
-              : '<button data-k="' + k + '" type="button">' + k + "</button>";
-    }).join("");
-    $("#kp").onclick = function (e) { var b = e.target.closest("[data-k]"); if (b) key(b.dataset.k); };
+    $("#save").innerHTML = svg("check", 20, 2.4) + " Simpan"; $("#save").onclick = doSave;
+    $("#amt").oninput = onAmt;
+    $("#amt").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); $("#note").focus(); } };
+    $("#note").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); } };
     $("#dtb").onclick = function () { try { $("#dt").showPicker(); } catch (e) { $("#dt").click(); } };
     $("#dt").onchange = dlab;
     $("#chip").onclick = function () { if (cat) $("#note").value = cat; };

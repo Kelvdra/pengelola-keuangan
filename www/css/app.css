@@ -159,22 +159,18 @@ nav button.on .i { stroke-width: 2.1; }
 .wr { display: flex; gap: 8px; margin-bottom: 8px; }
 .wr .sel { flex: 1; min-width: 0; }
 .wr .sel select { width: 100%; padding: 8px 30px 8px 12px; font-size: 13px; box-shadow: none; background: var(--surface-2); }
-.amt { display: flex; align-items: baseline; justify-content: flex-end; gap: 6px; min-height: 52px; padding: 2px 4px; white-space: nowrap; overflow: hidden; }
-.amt em { font-style: normal; color: var(--mut); font-weight: 600; font-size: 16px; }
-.amt b { font-size: 34px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.amt { display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 0 4px; }
+.amt em { font-style: normal; color: var(--mut); font-weight: 600; font-size: 17px; }
+.amt input { flex: 1; min-width: 0; width: 100%; border: 0; background: none; outline: 0; text-align: right; font-size: 34px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; padding: 4px 0; }
+.amt input::placeholder { color: var(--ln); }
 .nt { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border-radius: 12px; padding: 0 12px; margin: 2px 0 6px; }
 .nt span { color: var(--mut); font-size: 13px; font-weight: 500; }
 .nt input { border: 0; background: none; flex: 1; padding: 11px 0; outline: 0; min-width: 0; }
 #chip { min-height: 4px; }
 #chip button { background: var(--ac-soft); color: var(--ac); border: 0; border-radius: 8px; padding: 5px 11px; font-size: 12.5px; font-weight: 600; margin: 0 0 6px; }
-.kp { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
-.kp > button, .kp > div button { background: var(--surface-2); border: 0; border-radius: 13px; height: 50px; font-size: 22px; font-weight: 550; display: grid; place-items: center; transition: transform .08s, background .1s; }
-.kp > button:active, .kp > div button:active { transform: scale(.95); background: var(--ln); }
-.kp > div { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-.kp .ok { background: var(--ac); color: var(--on-ac); }
-.kp .ok:active { background: var(--ac-2); }
-.kp .dt { font-size: 12.5px; font-weight: 650; color: var(--ac); background: var(--ac-soft); gap: 3px; grid-auto-flow: row; padding: 4px; }
-.kp .dt span { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.1; }
+.foot { display: grid; grid-template-columns: auto 1fr; gap: 8px; margin-top: 4px; }
+.foot .dt { display: flex; align-items: center; gap: 8px; background: var(--ac-soft); color: var(--ac); border: 0; border-radius: 14px; padding: 0 16px; font-size: 13.5px; font-weight: 650; height: 50px; white-space: nowrap; }
+.foot .ok { height: 50px; font-size: 15px; }
 
 /* ---------- Tombol & form ---------- */
 .btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--ac); color: var(--on-ac); border: 0; border-radius: 14px; padding: 13px 16px; font-weight: 650; font-size: 14.5px; width: 100%; }
