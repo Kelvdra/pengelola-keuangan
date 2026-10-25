@@ -37,3 +37,7 @@ Catatan: jika repository ini publik, siapa pun bisa memakai kunci tersebut; jadi
 Ekspor Excel dibuat oleh `www/js/report.js` + `www/js/xlsxwriter.js` (tanpa library tambahan). Isinya 4 sheet:
 **Ringkasan** (kartu total, rekap bulanan, per kategori, posisi dompet — semua rumus), **Transaksi**, **Dompet**, **Kategori**.
 Tiga sheet terakhir tetap bisa diimpor kembali ke aplikasi.
+
+## Biaya admin transfer / top up
+Di form **Transfer** ada kolom *Biaya admin (opsional)*. Kosongkan jika gratis admin. Jika diisi, biaya dipotong dari dompet asal
+dan dicatat otomatis sebagai pengeluaran kategori **Biaya Admin** (terhubung ke transfernya, jadi ikut berubah/terhapus saat transfer diubah/dihapus).

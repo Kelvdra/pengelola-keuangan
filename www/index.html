@@ -44,10 +44,11 @@
   <div class="modal" id="mod" role="dialog" aria-modal="true" aria-labelledby="mt">
     <div class="mh"><button id="cx" class="l">Batal</button><b id="mt">Transaksi baru</b><button id="del" class="r danger" style="visibility:hidden">Hapus</button></div>
     <div class="seg" id="seg"><button data-y="out" class="on">Pengeluaran</button><button data-y="in">Pemasukan</button><button data-y="tf">Transfer</button></div>
-    <div class="mc"><div class="grid" id="cats"></div><p class="hint" id="tfh" style="display:none">Pilih dompet asal dan tujuan di bawah, lalu isi jumlah yang dipindahkan.</p></div>
+    <div class="mc"><div class="grid" id="cats"></div><p class="hint" id="tfh" style="display:none">Pilih dompet asal dan tujuan di bawah, lalu isi jumlah yang dipindahkan. Untuk transfer atau top up yang kena biaya admin, isi kolom Biaya admin (kosongkan jika gratis).</p></div>
     <div class="pad">
       <div class="wr"><div class="sel"><select id="a1" aria-label="Dompet"></select><span class="i-slot"></span></div><div class="sel"><select id="a2" aria-label="Dompet tujuan"></select><span class="i-slot"></span></div></div>
       <div class="amt"><em>Rp</em><input id="amt" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="0" aria-label="Jumlah"></div>
+      <div class="nt fee" id="feew" style="display:none"><span>Biaya admin <small>(opsional)</small></span><em>Rp</em><input id="fee" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="Gratis" aria-label="Biaya admin, kosongkan jika gratis"></div>
       <div class="nt"><span>Catatan</span><input id="note" type="text" inputmode="text" enterkeyhint="done" autocomplete="off" placeholder="Tambahkan catatan..." maxlength="80"></div>
       <div id="chip"></div>
       <input id="dt" type="date" tabindex="-1" aria-hidden="true" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px">

@@ -19,7 +19,7 @@
   ];
   var K = "pk_tx_v1", K2 = "pk_acc_v1", K3 = "pk_cat_v1";
   var tx = [], acc = [], AT = null, tab = "h", ty = "out", cat = null, eid = null, gt = "out";
-  var NEUTRAL = "#64748b";
+  var NEUTRAL = "#64748b", FEE_CAT = "Biaya Admin";
 
   /* ================= Util ================= */
   var $ = function (s) { return document.querySelector(s); };
@@ -346,7 +346,7 @@
     $("#a1").innerHTML = o(tf ? "Dari: " : "Dompet: "); $("#a2").innerHTML = o("Ke: ");
     $("#a1").value = AT ? (tf ? AT.from : AT.acc) : (v1 || acc[0].id);
     $("#a2").value = AT && tf ? AT.to : (v2 || (acc[1] || acc[0]).id);
-    $("#a2").parentNode.style.display = tf ? "" : "none";
+    $("#a2").parentNode.style.display = tf ? "" : "none"; $("#feew").style.display = tf ? "" : "none";
     $("#cats").innerHTML = (ty === "in" ? IN : OUT).map(function (c) {
       return '<button data-c="' + esc(c[0]) + '" class="' + (cat === c[0] ? "sel" : "") + '">' + badge(c[1], c[2]) + "<span>" + esc(c[0]) + "</span></button>";
     }).join("") + '<button id="cset" class="plain"><div class="ic">' + svg("settings", 22) + "</div><span>Atur</span></button>";
@@ -355,7 +355,11 @@
     chip();
   }
   function openM(id, f) {
-    eid = id || null; var t = tx.find(function (x) { return x.id === id; });
+    var t = tx.find(function (x) { return x.id === id; });
+    if (t && t.tfid) { var par = tx.find(function (x) { return x.id === t.tfid; }); if (par) { t = par; id = par.id; } }
+    eid = id || null;
+    var fx = t && t.type === "tf" ? tx.find(function (x) { return x.tfid === t.id; }) : null;
+    $("#fee").value = fx ? fmtAmt(String(fx.amount)) : "";
     ty = t ? t.type : (f || "out"); cat = t ? t.cat : null; AT = t;
     $("#amt").value = t ? fmtAmt(String(t.amount).replace(".", ",")) : ""; $("#note").value = t ? t.note : ""; $("#dt").value = t ? t.date : today();
     $("#del").style.visibility = t ? "visible" : "hidden"; dlab(); $("#mt").textContent = t ? "Ubah transaksi" : "Transaksi baru"; cats(); AT = null; $("#mod").classList.add("show");
@@ -367,8 +371,21 @@
     if (tf && $("#a1").value === $("#a2").value) return toast("Dompet asal dan tujuan harus berbeda.");
     var o = { type: ty, cat: tf ? "Transfer" : cat, amount: a, note: $("#note").value.trim(), date: $("#dt").value || today() };
     if (tf) { o.from = $("#a1").value; o.to = $("#a2").value; } else o.acc = $("#a1").value;
-    if (eid) Object.assign(tx.find(function (x) { return x.id === eid; }), o); else tx.push(Object.assign({ id: Date.now() }, o));
+    var pid = eid || Date.now();
+    if (eid) Object.assign(tx.find(function (x) { return x.id === eid; }), o); else tx.push(Object.assign({ id: pid }, o));
+    syncFee(pid, tf ? feeVal() : 0, o);
     persist(); $("#mod").classList.remove("show"); fillMon(); render(); toast(eid ? "Transaksi diperbarui" : "Transaksi disimpan");
+  }
+
+  /* Biaya admin transfer/top up: opsional. Disimpan sebagai pengeluaran kategori "Biaya Admin"
+     yang terhubung (tfid) ke transfernya, dipotong dari dompet asal, sehingga saldo, grafik & laporan ikut akurat. */
+  var feeVal = function () { return parseInt($("#fee").value.replace(/\D/g, ""), 10) || 0; };
+  function syncFee(pid, fee, o) {
+    var f = tx.find(function (x) { return x.tfid === pid; });
+    if (!fee) { if (f) tx = tx.filter(function (x) { return x !== f; }); return; }
+    if (!OUT.some(function (c) { return c[0] === FEE_CAT; })) OUT.push([FEE_CAT, "bank", "#64748b"]);
+    var d = { type: "out", cat: FEE_CAT, amount: fee, note: "Biaya admin transfer", date: o.date, acc: o.from, tfid: pid };
+    if (f) Object.assign(f, d); else tx.push(Object.assign({ id: pid - 0.5 }, d));
   }
 
   /* Jumlah: keyboard angka bawaan HP, diformat otomatis dengan titik ribuan */
@@ -430,7 +447,7 @@
     $("#cx").onclick = function () { $("#mod").classList.remove("show"); };
     $("#del").onclick = function () {
       confirmD("Hapus transaksi?", "Transaksi ini akan dihapus permanen.").then(function (ok) {
-        if (!ok) return; tx = tx.filter(function (x) { return x.id !== eid; }); persist(); $("#mod").classList.remove("show"); fillMon(); render(); toast("Transaksi dihapus");
+        if (!ok) return; tx = tx.filter(function (x) { return x.id !== eid && x.tfid !== eid; }); persist(); $("#mod").classList.remove("show"); fillMon(); render(); toast("Transaksi dihapus");
       });
     };
     $("#fab").onclick = function () { openM(); };
@@ -444,6 +461,8 @@
     document.querySelectorAll(".sel .i-slot").forEach(function (s) { s.outerHTML = svg("chevron", 16); });
     $("#save").innerHTML = svg("check", 20, 2.4) + " Simpan"; $("#save").onclick = doSave;
     $("#amt").oninput = onAmt;
+    $("#fee").oninput = function () { this.value = fmtAmt(this.value.replace(/\D/g, "")); };
+    $("#fee").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); $("#note").focus(); } };
     $("#amt").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); $("#note").focus(); } };
     $("#note").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); } };
     $("#dtb").onclick = function () { try { $("#dt").showPicker(); } catch (e) { $("#dt").click(); } };
